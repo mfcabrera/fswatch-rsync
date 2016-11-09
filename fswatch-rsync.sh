@@ -55,10 +55,10 @@ done
 # Check compulsory arguments
 if [[ "$1" = "" || "$2" = "" || "$3" = "" ]]; then
   echo -e "${red}Error: $PROJECT takes 3 compulsory arguments.${nocolor}"
-  echo "Usage: fswatch-rsync.sh [-d] /local/path /targetserver/path ssh_user "
+  echo "Usage: fswatch-rsync.sh [-d] /local/path /targetserver/path ssh_user targetserver"
   echo "[targetserver] "
-  echo "If -d is used, then the target directory is delted and a full sync is done" 
-  
+  echo "If -d is used, then the target directory is delted and a full sync is done"
+
   exit
 else
   LOCAL_PATH="$1"
@@ -90,7 +90,7 @@ echo      "Local source path:  \"$LOCAL_PATH\""
 echo      "Remote target path: \"$TARGET_PATH\""
 echo      "To target server:   \"$TARGET_SSH_USER@$TARGET\""
 echo      ""
-if [ "$DELETE_TARGET" = "1" ]; then  
+if [ "$DELETE_TARGET" = "1" ]; then
    echo -n   "Performing initial complete synchronization "
    echo -n   "(Warning: Target directory will be overwritten "
    echo      "with local version if differences occur)."
@@ -98,25 +98,25 @@ if [ "$DELETE_TARGET" = "1" ]; then
    read -n1 -r -p "Press any key to continue (or abort with Ctrl-C)... " key
    echo      ""
    echo -n   "Synchronizing... "
-   echo -n "rsync -avzr -q --delete --force --exclude='.*' \
+   echo -n "rsync -avzr -q --delete --force  \
            $LOCAL_PATH $TARGET_SSH_USER@$TARGET:$TARGET_PATH "
-           rsync -avzr -q --delete --force --exclude=".*" \
+           rsync -avzr -q --delete --force --exclude=".*" --exclude "training" \
            $LOCAL_PATH $TARGET_SSH_USER@$TARGET:$TARGET_PATH
            echo      "done."
            echo      ""
-           
+
 fi
 
 # Watch for changes and sync (exclude hidden files)
 echo    "Watching for changes. Quit anytime with Ctrl-C."
-fswatch -0 -r -l $LATENCY $LOCAL_PATH --exclude="/\.[^/]*$" \
+fswatch -0 -r -l $LATENCY $LOCAL_PATH --exclude="/\.[^/]*$"  --exclude="*.pack" --exclude "*_flymake*"  \
 | while read -d "" event
   do
     echo $event > .tmp_files
     echo -en "${green}" `date` "${nocolor}\"$event\" changed. Synchronizing... "
-    rsync -avzr -q --force \
+    rsync -avzr -q --cvs-exclude --exclude='.*' --exclude '*_flymake.py'  \
     --include-from=.tmp_files \
     $LOCAL_PATH $TARGET_SSH_USER@$TARGET:$TARGET_PATH
   echo "done."
-    rm -rf .tmp_files
+  rm -rf .tmp_files
   done
